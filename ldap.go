@@ -33,7 +33,7 @@ type Ldap struct {
 
 // ServeDNS implements the plugin.Handler interface. This method gets called when ldap is used
 // in a Server.
-func (e Ldap) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+func (l Ldap) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	// This function could be simpler. I.e. just fmt.Println("ldap") here, but we want to show
 	// a slightly more complex ldap as to make this more interesting.
 	// Here we wrap the dns.ResponseWriter in a new ResponseWriter and call the next plugin, when the
@@ -53,7 +53,7 @@ func (e Ldap) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 }
 
 // Name implements the Handler interface.
-func (e Ldap) Name() string { return "ldap" }
+func (l Ldap) Name() string { return "ldap" }
 
 // ResponsePrinter wrap a dns.ResponseWriter and will write ldap to standard output when WriteMsg is called.
 type ResponsePrinter struct {
