@@ -19,6 +19,7 @@ import (
 	clog "github.com/coredns/coredns/plugin/pkg/log"
 
 	"github.com/miekg/dns"
+	"gopkg.in/ldap.v2"
 )
 
 // Define log to be a logger with the plugin name in it. This way we can just use log.Info and
