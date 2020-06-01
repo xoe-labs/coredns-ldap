@@ -1,4 +1,4 @@
-package example
+package ldap
 
 import (
 	"github.com/coredns/coredns/core/dnsserver"
@@ -9,17 +9,17 @@ import (
 )
 
 // init registers this plugin.
-func init() { plugin.Register("example", setup) }
+func init() { plugin.Register("ldap", setup) }
 
-// setup is the function that gets called when the config parser see the token "example". Setup is responsible
-// for parsing any extra options the example plugin may have. The first token this function sees is "example".
+// setup is the function that gets called when the config parser see the token "ldap". Setup is responsible
+// for parsing any extra options the ldap plugin may have. The first token this function sees is "ldap".
 func setup(c *caddy.Controller) error {
-	c.Next() // Ignore "example" and give us the next token.
+	c.Next() // Ignore "ldap" and give us the next token.
 	if c.NextArg() {
 		// If there was another token, return an error, because we don't have any configuration.
 		// Any errors returned from this setup function should be wrapped with plugin.Error, so we
 		// can present a slightly nicer error message to the user.
-		return plugin.Error("example", c.ArgErr())
+		return plugin.Error("ldap", c.ArgErr())
 	}
 
 	// Add a startup function that will -- after all plugins have been loaded -- check if the
@@ -32,7 +32,7 @@ func setup(c *caddy.Controller) error {
 
 	// Add the Plugin to CoreDNS, so Servers can use it in their plugin chain.
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
-		return Example{Next: next}
+		return Ldap{Next: next}
 	})
 
 	// All OK, return a nil error.
