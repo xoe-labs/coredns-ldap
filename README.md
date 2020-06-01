@@ -6,7 +6,7 @@
 
 ## Description
 
-The ldap plugin resolve A, AAAA y PTR RR from ldap backend. To reduce load on the backend, you can configure `cacheTimeout=30m`.
+The ldap plugin resolves A, AAAA y PTR RR from a ldap backend. To reduce load on the backend, you can enable cache by configuring `cacheTimeout=30m`.
 
 ## Compilation
 

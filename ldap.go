@@ -1,6 +1,11 @@
-// Package ldap is a CoreDNS plugin that prints "ldap" to stdout on every packet received.
+// Package ldap is a CoreDNS plugin that resolves A, AAAA y PTR RR from a ldap backend.
 //
-// It serves as an ldap CoreDNS plugin with numerous code comments.
+// It serves as a backend connector for autoritative zone data.
+// Ldap is often used for bare metal inventories. This use is the main use case
+// for this plugin. Other use cases might eventually be supported.
+// fqdn and ip4 / ip6 information is mapped from it's repsective ldap schema and
+// served as DNS records over coredns. Mapping is configurable. To reduce load
+// on the backend, a configurable cache is bundled.
 package ldap
 
 import (
@@ -20,7 +25,7 @@ import (
 // friends to log.
 var log = clog.NewWithPlugin("ldap")
 
-// Ldap is an ldap plugin to show how to write a plugin.
+// Ldap is an ldap plugin to serve zone entries from a ldap backend.
 type Ldap struct {
 	Next plugin.Handler
 }
