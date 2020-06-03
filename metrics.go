@@ -1,7 +1,6 @@
 package ldap
 
 import (
-	"sync"
 
 	"github.com/coredns/coredns/plugin"
 
@@ -16,4 +15,3 @@ var requestCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Help:      "Counter of requests made.",
 }, []string{"server"})
 
-var once sync.Once
