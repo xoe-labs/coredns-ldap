@@ -21,7 +21,7 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/fall"
 
 	"github.com/miekg/dns"
-	"gopkg.in/ldap.v2"
+	"gopkg.in/ldap.v3"
 )
 
 // Ldap is an ldap plugin to serve zone entries from a ldap backend.
@@ -30,14 +30,37 @@ type Ldap struct {
 	Fall       fall.F
 	Zones      []string
 	Client     *ldap.Client
+	clientConfig
 
 }
+
+// New returns an initialized Ldap with defaults.
+func New(zones []string) *Ldap {
+	k := new(Ldap)
+	k.Zones = zones
+	return k
+}
+
 
 var (
 	errNoItems        = errors.New("no items found")
 	errNsNotExposed   = errors.New("namespace is not exposed")
 	errInvalidRequest = errors.New("invalid query name")
 )
+
+func (l *Ldap) InitClient() (err error) {
+	l, err := Dial("tcp", fmt.Sprintf("%s:%d", "ldap.example.com", 389))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer l.Close()
+
+	// Reconnect with TLS
+	err = l.StartTLS(&tls.Config{InsecureSkipVerify: true})
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
 // Services implements the ServiceBackend interface.
 func (l *Ldap) Services(ctx context.Context, state request.Request, exact bool, opt plugin.Options) (services []msg.Service, err error) {
