@@ -1,7 +1,6 @@
 package ldap
 
 import (
-
 	"github.com/coredns/coredns/plugin"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -14,4 +13,3 @@ var requestCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Name:      "request_count_total",
 	Help:      "Counter of requests made.",
 }, []string{"server"})
-

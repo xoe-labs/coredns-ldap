@@ -10,15 +10,15 @@ package ldap
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
-	"net"
-	"io"
-	"os"
+	"strings"
 
 	"github.com/coredns/coredns/plugin"
-	"github.com/coredns/coredns/plugin/metrics"
+	"github.com/coredns/coredns/plugin/etcd/msg"
 	"github.com/coredns/coredns/plugin/pkg/fall"
+	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 	"gopkg.in/ldap.v3"
@@ -26,12 +26,11 @@ import (
 
 // Ldap is an ldap plugin to serve zone entries from a ldap backend.
 type Ldap struct {
-	Next plugin.Handler
-	Fall       fall.F
-	Zones      []string
-	Client     *ldap.Client
+	Next   plugin.Handler
+	Fall   fall.F
+	Zones  []string
+	Client *ldap.Client
 	clientConfig
-
 }
 
 // New returns an initialized Ldap with defaults.
@@ -41,22 +40,22 @@ func New(zones []string) *Ldap {
 	return k
 }
 
-
 var (
 	errNoItems        = errors.New("no items found")
 	errNsNotExposed   = errors.New("namespace is not exposed")
 	errInvalidRequest = errors.New("invalid query name")
 )
 
+// InitClient initializes a Ldap client.
 func (l *Ldap) InitClient() (err error) {
-	l, err := Dial("tcp", fmt.Sprintf("%s:%d", "ldap.example.com", 389))
+	l.Client, err = Dial("tcp", fmt.Sprintf("%s:%d", "ldap.example.com", 389))
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer l.Close()
+	defer l.Client.Close()
 
 	// Reconnect with TLS
-	err = l.StartTLS(&tls.Config{InsecureSkipVerify: true})
+	err = l.Client.StartTLS(&tls.Config{InsecureSkipVerify: true})
 	if err != nil {
 		log.Fatal(err)
 	}

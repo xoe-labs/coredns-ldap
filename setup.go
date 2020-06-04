@@ -1,18 +1,24 @@
 package ldap
 
 import (
-	"sync"
 	"context"
+	"errors"
+	"fmt"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
+	"github.com/coredns/coredns/plugin/pkg/parse"
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 
 	"github.com/caddyserver/caddy"
 )
-
 
 const pluginName = "ldap"
 
@@ -59,7 +65,6 @@ func setup(c *caddy.Controller) error {
 
 var once sync.Once
 
-
 // RegisterLdapCache registers LdapCache start and stop functions with Caddy
 func (l *Ldap) RegisterLdapCache(c *caddy.Controller) {
 	c.OnStartup(func() error {
@@ -84,11 +89,10 @@ func (l *Ldap) RegisterLdapCache(c *caddy.Controller) {
 	})
 }
 
-
 func ldapParse(c *caddy.Controller) (*Ldap, error) {
 	var (
 		ldap *Ldap
-		err error
+		err  error
 	)
 
 	i := 0
@@ -105,7 +109,6 @@ func ldapParse(c *caddy.Controller) (*Ldap, error) {
 	}
 	return ldap, nil
 }
-
 
 // ParseStanza parses a ldap stanza
 func ParseStanza(c *caddy.Controller) (*Ldap, error) {

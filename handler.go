@@ -9,7 +9,6 @@ import (
 	"github.com/miekg/dns"
 )
 
-
 // ServeDNS implements the plugin.Handler interface.
 func (l Ldap) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	opt := plugin.Options{}
