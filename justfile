@@ -2,22 +2,22 @@
 
 # fixe auto-fixable lint issues in staged files
 fix:
-	~/bin/pre-commit run go-returns  # fixes all Go lint issues
-	~/bin/pre-commit run prettier    # fixes all Markdown (& other) lint issues
+	pre-commit run go-returns  # fixes all Go lint issues
+	pre-commit run prettier    # fixes all Markdown (& other) lint issues
 
 # lint most common issues in - or due - to staged files
 lint:
-	~/bin/pre-commit run go-vet-mod || true  # runs go vet
-	~/bin/pre-commit run go-lint    || true  # runs golint
-	~/bin/pre-commit run go-critic  || true  # runs gocritic
+	pre-commit run go-vet-mod || true  # runs go vet
+	pre-commit run go-lint    || true  # runs golint
+	pre-commit run go-critic  || true  # runs gocritic
 
 # lint all issues in - or due - to staged files
 lint-all:
-	~/bin/pre-commit run golangci-lint-mod || true  # runs golangci-lint
+	pre-commit run golangci-lint-mod || true  # runs golangci-lint
 
 # run tests in - or due - to staged files
 test:
-	~/bin/pre-commit run go-test-mod || true  # runs go test
+	pre-commit run go-test-mod || true  # runs go test
 
 # commit skipping pre-commit hooks
 commit m:
@@ -34,8 +34,8 @@ install:
 	go get github.com/sqs/goreturns
 	go get github.com/go-lintpack/lintpack/...
 	go get github.com/go-critic/go-critic/...
-	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $(shell go env GOPATH)/bin v1.27.0
+	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $(go env GOPATH)/bin v1.27.0
 
-# setup pre-commit hooks (optional)
+# setup/update pre-commit hooks (optional)
 setup:
-	~/bin/pre-commit install --install-hooks
+	pre-commit install --install-hooks # uninstall: `pre-commit uninstall`
