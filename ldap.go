@@ -30,7 +30,7 @@ type Ldap struct {
 	Fall   fall.F
 	Zones  []string
 	Client *ldap.Client
-	clientConfig
+	clientConfig map[string]
 }
 
 // New returns an initialized Ldap with defaults.
@@ -48,7 +48,7 @@ var (
 
 // InitClient initializes a Ldap client.
 func (l *Ldap) InitClient() (err error) {
-	l.Client, err = Dial("tcp", fmt.Sprintf("%s:%d", "ldap.example.com", 389))
+	l.Client, err = ldap.Dial("tcp", fmt.Sprintf("%s:%d", "ldap.example.com", 389))
 	if err != nil {
 		log.Fatal(err)
 	}

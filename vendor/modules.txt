@@ -35,12 +35,6 @@ github.com/coredns/coredns/plugin/test
 github.com/coredns/coredns/request
 # github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568
 github.com/flynn/go-shlex
-# github.com/go-critic/go-critic v0.4.3
-## explicit
-# github.com/go-lintpack/lintpack v0.5.2
-## explicit
-# github.com/go-toolsmith/typep v1.0.2
-## explicit
 # github.com/golang/protobuf v1.4.0
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
@@ -75,8 +69,6 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/sqs/goreturns v0.0.0-20181028201513-538ac6014518
-## explicit
 # golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
