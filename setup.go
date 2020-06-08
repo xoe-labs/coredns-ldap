@@ -1,20 +1,13 @@
 package ldap
 
 import (
-	"context"
-	"errors"
-	"fmt"
 	"strconv"
-	"strings"
 	"sync"
-	"time"
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/metrics"
-	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
-	"github.com/coredns/coredns/plugin/pkg/parse"
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 
 	"github.com/caddyserver/caddy"
@@ -38,12 +31,10 @@ func setup(c *caddy.Controller) error {
 		return plugin.Error(pluginName, err)
 	}
 
-	err = l.InitLdapCache(context.Background())
+	err = l.InitClient()
 	if err != nil {
 		return plugin.Error(pluginName, err)
 	}
-
-	l.RegisterLdapCache(c)
 
 	// add prometheus metrics on startup
 	c.OnStartup(func() error {
@@ -65,30 +56,6 @@ func setup(c *caddy.Controller) error {
 
 var once sync.Once
 
-// RegisterLdapCache registers LdapCache start and stop functions with Caddy
-func (l *Ldap) RegisterLdapCache(c *caddy.Controller) {
-	c.OnStartup(func() error {
-		go l.APIConn.Run()
-
-		timeout := time.After(5 * time.Second)
-		ticker := time.NewTicker(100 * time.Millisecond)
-		for {
-			select {
-			case <-ticker.C:
-				if k.APIConn.HasSynced() {
-					return nil
-				}
-			case <-timeout:
-				return nil
-			}
-		}
-	})
-
-	c.OnShutdown(func() error {
-		return l.APIConn.Stop()
-	})
-}
-
 func ldapParse(c *caddy.Controller) (*Ldap, error) {
 	var (
 		ldap *Ldap
@@ -102,7 +69,7 @@ func ldapParse(c *caddy.Controller) (*Ldap, error) {
 		}
 		i++
 
-		l, err = ParseStanza(c)
+		ldap, err = ParseStanza(c)
 		if err != nil {
 			return ldap, err
 		}
@@ -112,16 +79,7 @@ func ldapParse(c *caddy.Controller) (*Ldap, error) {
 
 // ParseStanza parses a ldap stanza
 func ParseStanza(c *caddy.Controller) (*Ldap, error) {
-
 	ldap := New([]string{""})
-	ldap.autoPathSearch = searchFromResolvConf()
-
-	opts := dnsControlOpts{
-		initEndpointsCache: true,
-		ignoreEmptyService: false,
-	}
-	ldap.opts = opts
-
 	zones := c.RemainingArgs()
 
 	if len(zones) != 0 {
@@ -136,153 +94,78 @@ func ParseStanza(c *caddy.Controller) (*Ldap, error) {
 		}
 	}
 
-	ldap.primaryZoneIndex = -1
-	for i, z := range ldap.Zones {
-		if dnsutil.IsReverse(z) > 0 {
-			continue
-		}
-		ldap.primaryZoneIndex = i
-		break
-	}
-
-	if ldap.primaryZoneIndex == -1 {
-		return nil, errors.New("non-reverse zone name must be used")
-	}
-
 	ldap.Upstream = upstream.New()
 
 	for c.NextBlock() {
 		switch c.Val() {
 		// RFC 4516 URL
-		case "endpoint_pod_names":
-			args := c.RemainingArgs()
-			if len(args) > 0 {
+		case "ldap_url":
+			c.NextArg()
+			ldap.ldapURL = c.Val()
+			continue
+		case "paging_limit":
+			c.NextArg()
+			pagingLimit, err := strconv.Atoi(c.Val())
+			if err != nil {
 				return nil, c.ArgErr()
 			}
-			ldap.endpointNameMode = true
+			ldap.pagingLimit = pagingLimit
 			continue
-		case "pods":
-			args := c.RemainingArgs()
-			if len(args) == 1 {
-				switch args[0] {
-				case podModeDisabled, podModeInsecure, podModeVerified:
-					ldap.podMode = args[0]
+		case "search_request":
+			for c.NextBlock() {
+				switch c.Val() {
+				case "base_dn":
+					c.NextArg() // ou=ae-dir
+					ldap.searchRequest.BaseDN = c.Val()
+				case "filter":
+					c.NextArg() // (objectClass=aeNwDevice)
+					ldap.searchRequest.Filter = c.Val()
+				case "attributes":
+					ldap.searchRequest.Attributes = c.RemainingArgs() // aeFqdn ipHostNumber
 				default:
-					return nil, fmt.Errorf("wrong value for pods: %s,  must be one of: disabled, verified, insecure", args[0])
+					return nil, c.Errf("unknown search request property '%s'", c.Val())
 				}
-				continue
 			}
-			return nil, c.ArgErr()
-		case "namespaces":
-			args := c.RemainingArgs()
-			if len(args) > 0 {
-				for _, a := range args {
-					ldap.Namespaces[a] = struct{}{}
-				}
-				continue
-			}
-			return nil, c.ArgErr()
-		case "endpoint":
-			args := c.RemainingArgs()
-			if len(args) > 0 {
-				// Multiple endpoints are deprecated but still could be specified,
-				// only the first one be used, though
-				ldap.APIServerList = args
-				if len(args) > 1 {
-					log.Warningf("Multiple endpoints have been deprecated, only the first specified endpoint '%s' is used", args[0])
-				}
-				continue
-			}
-			return nil, c.ArgErr()
-		case "tls": // cert key cacertfile
-			args := c.RemainingArgs()
-			if len(args) == 3 {
-				ldap.APIClientCert, ldap.APIClientKey, ldap.APICertAuth = args[0], args[1], args[2]
-				continue
-			}
-			return nil, c.ArgErr()
-		case "labels":
-			args := c.RemainingArgs()
-			if len(args) > 0 {
-				labelSelectorString := strings.Join(args, " ")
-				ls, err := meta.ParseToLabelSelector(labelSelectorString)
-				if err != nil {
-					return nil, fmt.Errorf("unable to parse label selector value: '%v': %v", labelSelectorString, err)
-				}
-				ldap.opts.labelSelector = ls
-				continue
-			}
-			return nil, c.ArgErr()
-		case "namespace_labels":
-			args := c.RemainingArgs()
-			if len(args) > 0 {
-				namespaceLabelSelectorString := strings.Join(args, " ")
-				nls, err := meta.ParseToLabelSelector(namespaceLabelSelectorString)
-				if err != nil {
-					return nil, fmt.Errorf("unable to parse namespace_label selector value: '%v': %v", namespaceLabelSelectorString, err)
-				}
-				ldap.opts.namespaceLabelSelector = nls
-				continue
-			}
-			return nil, c.ArgErr()
+			continue
+		case "username":
+			c.NextArg()
+			ldap.username = c.Val()
+		case "password":
+			c.NextArg()
+			ldap.password = c.Val()
+		case "sasl":
+			c.NextArg()
+			ldap.sasl = true
 		case "fallthrough":
 			ldap.Fall.SetZonesFromArgs(c.RemainingArgs())
-		case "ttl":
-			args := c.RemainingArgs()
-			if len(args) == 0 {
-				return nil, c.ArgErr()
-			}
-			t, err := strconv.Atoi(args[0])
-			if err != nil {
-				return nil, err
-			}
-			if t < 0 || t > 3600 {
-				return nil, c.Errf("ttl must be in range [0, 3600]: %d", t)
-			}
-			ldap.ttl = uint32(t)
-		case "transfer":
-			tos, froms, err := parse.Transfer(c, false)
-			if err != nil {
-				return nil, err
-			}
-			if len(froms) != 0 {
-				return nil, c.Errf("transfer from is not supported with this plugin")
-			}
-			ldap.TransferTo = tos
-		case "noendpoints":
-			if len(c.RemainingArgs()) != 0 {
-				return nil, c.ArgErr()
-			}
-			ldap.opts.initEndpointsCache = false
-		case "ignore":
-			args := c.RemainingArgs()
-			if len(args) > 0 {
-				ignore := args[0]
-				if ignore == "empty_service" {
-					ldap.opts.ignoreEmptyService = true
-					continue
-				} else {
-					return nil, fmt.Errorf("unable to parse ignore value: '%v'", ignore)
-				}
-			}
-		case "kubeconfig":
-			args := c.RemainingArgs()
-			if len(args) == 2 {
-				config := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-					&clientcmd.ClientConfigLoadingRules{ExplicitPath: args[0]},
-					&clientcmd.ConfigOverrides{CurrentContext: args[1]},
-				)
-				ldap.ClientConfig = config
-				continue
-			}
-			return nil, c.ArgErr()
 		default:
 			return nil, c.Errf("unknown property '%s'", c.Val())
 		}
 	}
-
-	if len(ldap.Namespaces) != 0 && ldap.opts.namespaceLabelSelector != nil {
-		return nil, c.Errf("namespaces and namespace_labels cannot both be set")
+	// validate non-default ldap values ...
+	if ldap.ldapURL == "" || &ldap.ldapURL == nil {
+		return nil, c.ArgErr()
+	}
+	if ldap.searchRequest.BaseDN == "" {
+		return nil, c.ArgErr()
+	}
+	if ldap.searchRequest.Filter == "" {
+		return nil, c.ArgErr()
+	}
+	if len(ldap.searchRequest.Attributes) != 2 {
+		return nil, c.ArgErr()
+	}
+	// if only one of password and username set
+	if (&ldap.username == nil) != (&ldap.password == nil) {
+		return nil, c.ArgErr()
+	}
+	// if both username/password and sasl are set
+	if &ldap.username != nil && &ldap.sasl != nil {
+		return nil, c.ArgErr()
+	}
+	// if neither username/password nor sasl are set
+	if &ldap.username == nil && &ldap.sasl == nil {
+		return nil, c.ArgErr()
 	}
 
 	return ldap, nil

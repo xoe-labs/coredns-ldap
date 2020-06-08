@@ -10,14 +10,15 @@ package ldap
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
-	"fmt"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/etcd/msg"
 	"github.com/coredns/coredns/plugin/pkg/fall"
+	"github.com/coredns/coredns/plugin/pkg/upstream"
 	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
@@ -26,17 +27,34 @@ import (
 
 // Ldap is an ldap plugin to serve zone entries from a ldap backend.
 type Ldap struct {
-	Next   plugin.Handler
-	Fall   fall.F
-	Zones  []string
-	Client *ldap.Client
-	clientConfig map[string]
+	Next          plugin.Handler
+	Fall          fall.F
+	Zones         []string
+	Upstream      *upstream.Upstream
+	Client        ldap.Client
+
+	searchRequest *ldap.SearchRequest
+	ldapURL       string
+	pagingLimit   uint32
+	syncInterval  time.Duration
+	username      string
+	password      string
+	sasl          bool
+    	zMu           sync.RWMutex
 }
 
 // New returns an initialized Ldap with defaults.
 func New(zones []string) *Ldap {
 	k := new(Ldap)
 	k.Zones = zones
+	k.pagingLimit = 0
+	// SearchRequest defaults
+	k.searchRequest = new(ldap.SearchRequest)
+	k.searchRequest.DerefAliases = ldap.NeverDerefAliases // TODO: Reason
+	k.searchRequest.Scope = ldap.ScopeWholeSubtree        // search whole subtree
+	k.searchRequest.SizeLimit = 500                       // TODO: Reason
+	k.searchRequest.TimeLimit = 500                       // TODO: Reason
+	k.searchRequest.TypesOnly = false                     // TODO: Reason
 	return k
 }
 
@@ -48,17 +66,13 @@ var (
 
 // InitClient initializes a Ldap client.
 func (l *Ldap) InitClient() (err error) {
-	l.Client, err = ldap.Dial("tcp", fmt.Sprintf("%s:%d", "ldap.example.com", 389))
+	l.Client, err = ldap.DialURL(l.ldapURL)
 	if err != nil {
 		log.Fatal(err)
+		return err
 	}
 	defer l.Client.Close()
-
-	// Reconnect with TLS
-	err = l.Client.StartTLS(&tls.Config{InsecureSkipVerify: true})
-	if err != nil {
-		log.Fatal(err)
-	}
+	return nil
 }
 
 // Services implements the ServiceBackend interface.
