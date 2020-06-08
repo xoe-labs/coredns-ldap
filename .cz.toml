@@ -1,0 +1,78 @@
+# use with https://commitizen-tools.github.io/commitizen/
+
+[tool.commitizen]
+name = "cz_customize"
+version = "0.0.1"
+tag_format = "$version"
+
+
+[tool.commitizen.customize]
+message_template = """{{change_type}}: {{change_message}}{% if changed_components %}
+
+components: {{changed_components}}{% endif %}{% if change_reason %}
+
+{{change_reason}}{% endif %}{% if solved_ticket %}
+
+fixes {{solved_ticket}}]{% endif %}"""
+example = "imp: sync feature"
+schema = """
+<type>: <title> [<components>]
+
+fixes <issue>
+"""
+bump_pattern = "^(break|imp|add|fix)"
+bump_map = {"break" = "MAJOR", "add" = "MINOR", "imp" = "MINOR", "fix" = "PATCH"}
+info = """
+Types of change
+
+principal:
+----------
+break:   affect the configuration api in backwards incompatible ways
+imp:     improve an existing feature
+add:     add a new feature
+fix:     fix something, usually closing an issue
+ref:     refactor code strictly without altering it's behaviour
+
+auxiliary:
+----------
+fixup:   fixup a previous commit, used for oversights, typos, etc.
+wip:     commit work in progress (do it frequently)
+
+maintenance:
+------------
+revert:  revert a previous commit
+chore:   commit on repository tooling
+lint:    commit on linting
+"""
+
+[[tool.commitizen.customize.questions]]
+type = "list"
+name = "change_type"
+choices = ["break", "add", "fix", "fixup", "wip", "ref", "revert", "chore", "lint"]
+message = "Select type of change:"
+
+[[tool.commitizen.customize.questions]]
+type = "input"
+name = "change_message"
+message = "Short title:"
+
+[[tool.commitizen.customize.questions]]
+type = "list"
+name = "changed_components"
+choices = [
+	"",
+	"module",
+	"tests",
+]
+message = "Select components - optional:"
+
+[[tool.commitizen.customize.questions]]
+type = "input"
+name = "change_reason"
+message = "Detail change reason - optional:"
+
+[[tool.commitizen.customize.questions]]
+type = "input"
+name = "solved_ticket"
+message = "Issue(s) solved - optional; format '#123':"
+
