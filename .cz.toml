@@ -14,41 +14,50 @@ components: {{changed_components}}{% endif %}{% if change_reason %}
 {{change_reason}}{% endif %}{% if solved_ticket %}
 
 fixes {{solved_ticket}}]{% endif %}"""
-example = "imp: sync feature"
-schema = """
-<type>: <title> [<components>]
+example =  """imp: sync feature
 
-fixes <issue>
+components: module
+
+Previously, sync was done synchronously, now we sync every
+syncInterval (default: 60s) and store the records in memory.
+
+This way we can reduce the chatter with the backend service without significant
+downside on actuality of entries. Since syncInterval is configurable,
+operators still can fine tune to their needs.
+
+fixes #123
+"""
+schema = """
+<type>: <title>
+[
+components: <components>]
+[
+<reason>]
+[
+fixes <ticket>]
 """
 bump_pattern = "^(break|imp|add|fix)"
 bump_map = {"break" = "MAJOR", "add" = "MINOR", "imp" = "MINOR", "fix" = "PATCH"}
 info = """
-Types of change
-
-principal:
-----------
-break:   affect the configuration api in backwards incompatible ways
-imp:     improve an existing feature
-add:     add a new feature
-fix:     fix something, usually closing an issue
-ref:     refactor code strictly without altering it's behaviour
-
-auxiliary:
-----------
-fixup:   fixup a previous commit, used for oversights, typos, etc.
-wip:     commit work in progress (do it frequently)
-
-maintenance:
-------------
-revert:  revert a previous commit
-chore:   commit on repository tooling
-lint:    commit on linting
+Well-formed commit messages are used to craft CHANGELOG.md and to determine
+version bumps. Please procure for a parseable history on master branch.
 """
 
 [[tool.commitizen.customize.questions]]
 type = "list"
 name = "change_type"
-choices = ["break", "add", "fix", "fixup", "wip", "ref", "revert", "chore", "lint"]
+choices = [
+  {value = "break",  name = "break   - principal:    affect the configuration api in backwards incompatible way"},
+  {value = "imp",    name = "imp     - principal:    improve an existing feature"},
+  {value = "add",    name = "add     - principal:    add a new feature"},
+  {value = "fix",    name = "fix     - principal:    fix something, usually closing an issueo"},
+  {value = "ref",    name = "ref     - principal:    refactor code strictly without altering it's behaviour"},
+  {value = "fixup",  name = "fixup   - auxiliary:    fixup a previous commit, used for oversights, typos, etc."},
+  {value = "wip",    name = "wip     - auxiliary:    commit work in progress (do it frequently)"},
+  {value = "revert", name = "revert  - maintenance:  revert a previous committ"},
+  {value = "chore",  name = "chore   - maintenance:  commit on repository tooling"},
+  {value = "lint",   name = "lint    - maintenance:  commit on linting"},
+]
 message = "Select type of change:"
 
 [[tool.commitizen.customize.questions]]
