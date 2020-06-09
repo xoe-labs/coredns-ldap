@@ -14,9 +14,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"net"
 
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/etcd/msg"
+	"github.com/coredns/coredns/plugin/file"
 	"github.com/coredns/coredns/plugin/pkg/fall"
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 	"github.com/coredns/coredns/request"
@@ -25,13 +27,22 @@ import (
 	"gopkg.in/ldap.v3"
 )
 
+type ldapRecord struct {
+	fqdn string
+	ip   net.IP
+}
+
+func (r *ldapRecord) A() (A *dns.A) {
+	return &dns.A{Hdr: dns.RR_Header{Name: r.fqdn, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 0}, A: r.ip}
+}
+
 // Ldap is an ldap plugin to serve zone entries from a ldap backend.
 type Ldap struct {
-	Next          plugin.Handler
-	Fall          fall.F
-	Zones         []string
-	Upstream      *upstream.Upstream
-	Client        ldap.Client
+	Next     plugin.Handler
+	Fall     fall.F
+	Upstream *upstream.Upstream
+	Client   ldap.Client
+	Zones    file.Zones
 
 	searchRequest *ldap.SearchRequest
 	ldapURL       string
@@ -40,22 +51,25 @@ type Ldap struct {
 	username      string
 	password      string
 	sasl          bool
-    	zMu           sync.RWMutex
+	fqdnAttr      string
+	ip4Attr       string
+	zMu           sync.RWMutex
+	ttl           time.Duration
 }
 
 // New returns an initialized Ldap with defaults.
-func New(zones []string) *Ldap {
-	k := new(Ldap)
-	k.Zones = zones
-	k.pagingLimit = 0
+func New(zoneNames []string) *Ldap {
+	l := new(Ldap)
+	l.Zones.Names = zoneNames
+	l.pagingLimit = 0
 	// SearchRequest defaults
-	k.searchRequest = new(ldap.SearchRequest)
-	k.searchRequest.DerefAliases = ldap.NeverDerefAliases // TODO: Reason
-	k.searchRequest.Scope = ldap.ScopeWholeSubtree        // search whole subtree
-	k.searchRequest.SizeLimit = 500                       // TODO: Reason
-	k.searchRequest.TimeLimit = 500                       // TODO: Reason
-	k.searchRequest.TypesOnly = false                     // TODO: Reason
-	return k
+	l.searchRequest = new(ldap.SearchRequest)
+	l.searchRequest.DerefAliases = ldap.NeverDerefAliases // TODO: Reason
+	l.searchRequest.Scope = ldap.ScopeWholeSubtree        // search whole subtree
+	l.searchRequest.SizeLimit = 500                       // TODO: Reason
+	l.searchRequest.TimeLimit = 500                       // TODO: Reason
+	l.searchRequest.TypesOnly = false                     // TODO: Reason
+	return l
 }
 
 var (
@@ -75,42 +89,3 @@ func (l *Ldap) InitClient() (err error) {
 	return nil
 }
 
-// Services implements the ServiceBackend interface.
-func (l *Ldap) Services(ctx context.Context, state request.Request, exact bool, opt plugin.Options) (services []msg.Service, err error) {
-	services, err = l.Records(ctx, state, exact)
-	if err != nil {
-		return
-	}
-
-	services = msg.Group(services)
-	return
-}
-
-// Reverse implements the ServiceBackend interface.
-func (l *Ldap) Reverse(ctx context.Context, state request.Request, exact bool, opt plugin.Options) (services []msg.Service, err error) {
-	return l.Services(ctx, state, exact, opt)
-}
-
-// Lookup implements the ServiceBackend interface.
-func (l *Ldap) Lookup(ctx context.Context, state request.Request, name string, typ uint16) (*dns.Msg, error) {
-	return l.Upstream.Lookup(ctx, state, name, typ)
-}
-
-// IsNameError implements the ServiceBackend interface.
-func (l *Ldap) IsNameError(err error) bool {
-	return err == errNoItems || err == errNsNotExposed || err == errInvalidRequest
-}
-
-// Records looks up records in ldap. If exact is true, it will lookup just this
-// name. This is used when find matches when completing SRV lookups for instance.
-func (l *Ldap) Records(ctx context.Context, state request.Request, exact bool) ([]msg.Service, error) {
-	name := state.Name()
-
-	path, star := msg.PathWithWildcard(name, l.PathPrefix)
-	r, err := l.get(ctx, path, !exact)
-	if err != nil {
-		return nil, err
-	}
-	segments := strings.Split(msg.Path(name, l.PathPrefix), "/")
-	return l.loopNodes(r.Kvs, segments, star, state.QType())
-}

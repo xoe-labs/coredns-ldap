@@ -3,6 +3,7 @@ package ldap
 import (
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
@@ -79,21 +80,19 @@ func ldapParse(c *caddy.Controller) (*Ldap, error) {
 
 // ParseStanza parses a ldap stanza
 func ParseStanza(c *caddy.Controller) (*Ldap, error) {
-	ldap := New([]string{""})
-	zones := c.RemainingArgs()
-
-	if len(zones) != 0 {
-		ldap.Zones = zones
-		for i := 0; i < len(ldap.Zones); i++ {
-			ldap.Zones[i] = plugin.Host(ldap.Zones[i]).Normalize()
+	zoneNames := c.RemainingArgs()
+	if len(zoneNames) != 0 {
+		for i := 0; i < len(zoneNames); i++ {
+			zoneNames[i] = plugin.Host(zoneNames[i]).Normalize()
 		}
 	} else {
-		ldap.Zones = make([]string, len(c.ServerBlockKeys))
-		for i := 0; i < len(c.ServerBlockKeys); i++ {
-			ldap.Zones[i] = plugin.Host(c.ServerBlockKeys[i]).Normalize()
+		zoneNames = make([]string, len(c.ServerBlockKeys))
+		for i := 0; i < len(zoneNames); i++ {
+			zoneNames[i] = plugin.Host(c.ServerBlockKeys[i]).Normalize()
 		}
 	}
 
+	ldap := New(zoneNames)
 	ldap.Upstream = upstream.New()
 
 	for c.NextBlock() {
@@ -105,39 +104,69 @@ func ParseStanza(c *caddy.Controller) (*Ldap, error) {
 			continue
 		case "paging_limit":
 			c.NextArg()
-			pagingLimit, err := strconv.Atoi(c.Val())
+			pagingLimit, err := strconv.ParseUint(c.Val(), 10, 0)
 			if err != nil {
 				return nil, c.ArgErr()
 			}
-			ldap.pagingLimit = pagingLimit
+			ldap.pagingLimit = uint32(pagingLimit)
 			continue
-		case "search_request":
+		case "base_dn":
+			c.NextArg() // ou=ae-dir
+			ldap.searchRequest.BaseDN = c.Val()
+			continue
+		case "filter":
+			c.NextArg() // (objectClass=aeNwDevice)
+			ldap.searchRequest.Filter = c.Val()
+			continue
+		case "attributes":
 			for c.NextBlock() {
 				switch c.Val() {
-				case "base_dn":
-					c.NextArg() // ou=ae-dir
-					ldap.searchRequest.BaseDN = c.Val()
-				case "filter":
-					c.NextArg() // (objectClass=aeNwDevice)
-					ldap.searchRequest.Filter = c.Val()
-				case "attributes":
-					ldap.searchRequest.Attributes = c.RemainingArgs() // aeFqdn ipHostNumber
+				case "fqdn":
+					c.NextArg() // aeFqdn
+					ldap.searchRequest.Attributes = append(ldap.searchRequest.Attributes, c.Val())
+					ldap.fqdnAttr = c.Val()
+					continue
+				case "ip4":
+					c.NextArg() // ipHostNumber
+					ldap.searchRequest.Attributes = append(ldap.searchRequest.Attributes, c.Val())
+					ldap.ip4Attr = c.Val()
+					continue
 				default:
-					return nil, c.Errf("unknown search request property '%s'", c.Val())
+					return nil, c.Errf("unknown attributes property '%s'", c.Val())
 				}
 			}
 			continue
 		case "username":
 			c.NextArg()
 			ldap.username = c.Val()
+			continue
 		case "password":
 			c.NextArg()
 			ldap.password = c.Val()
+			continue
 		case "sasl":
 			c.NextArg()
 			ldap.sasl = true
+			continue
+		case "ttl":
+			c.NextArg()
+			ttl, err := time.ParseDuration(c.Val())
+			if err != nil {
+				return nil, c.ArgErr()
+			}
+			ldap.ttl = ttl
+			continue
+		case "sync_interval":
+			c.NextArg()
+			syncInterval, err := time.ParseDuration(c.Val())
+			if err != nil {
+				return nil, c.ArgErr()
+			}
+			ldap.syncInterval = syncInterval
+			continue
 		case "fallthrough":
 			ldap.Fall.SetZonesFromArgs(c.RemainingArgs())
+			continue
 		default:
 			return nil, c.Errf("unknown property '%s'", c.Val())
 		}
