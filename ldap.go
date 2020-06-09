@@ -9,19 +9,15 @@
 package ldap
 
 import (
-	"context"
 	"errors"
-	"strings"
+	"net"
 	"sync"
 	"time"
-	"net"
 
 	"github.com/coredns/coredns/plugin"
-	"github.com/coredns/coredns/plugin/etcd/msg"
 	"github.com/coredns/coredns/plugin/file"
 	"github.com/coredns/coredns/plugin/pkg/fall"
 	"github.com/coredns/coredns/plugin/pkg/upstream"
-	"github.com/coredns/coredns/request"
 
 	"github.com/miekg/dns"
 	"gopkg.in/ldap.v3"
