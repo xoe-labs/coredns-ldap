@@ -51,3 +51,4 @@ func (l Ldap) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 
 // Name implements the Handler interface.
 func (l Ldap) Name() string { return "ldap" }
+

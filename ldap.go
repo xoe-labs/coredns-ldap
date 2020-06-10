@@ -85,3 +85,27 @@ func (l *Ldap) InitClient() (err error) {
 	return nil
 }
 
+
+// SOA returns a syntetic SOA record for a zone.
+func SOA(zone string) (dns.RR) {
+	ttl := uint32(300)
+	header := dns.RR_Header{Name: zone, Rrtype: dns.TypeSOA, Ttl: ttl, Class: dns.ClassINET}
+
+	Mbox := hostmaster + "."
+	Ns := "ns.dns."
+	if zone[0] != '.' {
+		Mbox += zone
+		Ns += zone
+	}
+
+	return &dns.SOA{Hdr: header,
+		Mbox:    Mbox,
+		Ns:      Ns,
+		Serial:  12345,
+		Refresh: 7200,
+		Retry:   1800,
+		Expire:  86400,
+		Minttl:  ttl,
+	}
+}
+const hostmaster = "hostmaster"

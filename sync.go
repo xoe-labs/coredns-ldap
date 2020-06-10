@@ -48,6 +48,7 @@ func (l *Ldap) updateZones(ctx context.Context) error {
 		if zoneFileMap[zn] == nil {
 			zoneFileMap[zn] = file.NewZone(zn, "")
 			zoneFileMap[zn].Upstream = l.Upstream
+			zoneFileMap[zn].Insert(SOA(zn))
 		}
 		for _, lr := range lrpz {
 			zoneFileMap[zn].Insert(lr.A())
