@@ -49,7 +49,10 @@ func (l *Ldap) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	case file.ServerFailure:
 		return dns.RcodeServerFailure, nil
 	}
-	w.WriteMsg(m)
+
+	if err := w.WriteMsg(m); err != nil {
+		return dns.RcodeServerFailure, nil
+	}
 
 	return dns.RcodeSuccess, nil
 }

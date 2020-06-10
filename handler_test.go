@@ -14,6 +14,7 @@ import (
 	. "github.com/xoe-labs/ldap/v0"
 )
 
+// nolint: gochecknoglobals
 var ldapTestCases = []test.Case{
 	{
 		// Simple case
@@ -36,14 +37,18 @@ func newTestLdap() *Ldap {
 
 func newTestLdapZones() map[string]*file.Zone {
 	Zone := file.NewZone("example.org.", "")
-	Zone.Insert(SOA("example.org."))
+	if err := Zone.Insert(SOA("example.org.")); err != nil {
+		panic("omg")
+	}
 
 	for _, rr := range []string{
 		"example.org. " + defaultA,
 		"a.example.org. " + defaultA,
 	} {
 		r, _ := dns.NewRR(rr)
-		Zone.Insert(r)
+		if err := Zone.Insert(r); err != nil {
+			panic("omg")
+		}
 	}
 
 	zones := make(map[string]*file.Zone)

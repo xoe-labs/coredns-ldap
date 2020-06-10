@@ -27,7 +27,7 @@ type ldapRecord struct {
 	ip   net.IP
 }
 
-func (r *ldapRecord) A() (A *dns.A) {
+func (r *ldapRecord) A() (a *dns.A) {
 	return &dns.A{Hdr: dns.RR_Header{Name: r.fqdn, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 0}, A: r.ip}
 }
 

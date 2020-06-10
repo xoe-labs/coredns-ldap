@@ -18,9 +18,11 @@ import (
 const pluginName = "ldap"
 
 // Define log to be a logger with the plugin name in it.
+// nolint: gochecknoglobals
 var log = clog.NewWithPlugin(pluginName)
 
 // init registers this plugin.
+// nolint: gochecknoinits
 func init() { plugin.Register(pluginName, setup) }
 
 // setup is the function that gets called when the config parser see the token "ldap". Setup is responsible
@@ -55,6 +57,7 @@ func setup(c *caddy.Controller) error {
 	return nil
 }
 
+// nolint: gochecknoglobals
 var once sync.Once
 
 func ldapParse(c *caddy.Controller) (*Ldap, error) {
@@ -80,6 +83,7 @@ func ldapParse(c *caddy.Controller) (*Ldap, error) {
 }
 
 // ParseStanza parses a ldap stanza.
+// nolint: funlen, gocognit, gocyclo
 func ParseStanza(c *caddy.Controller) (*Ldap, error) {
 	zoneNames := c.RemainingArgs()
 	if len(zoneNames) != 0 {

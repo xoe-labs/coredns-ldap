@@ -53,11 +53,18 @@ func (l *Ldap) updateZones() error {
 		if zoneFileMap[zn] == nil {
 			zoneFileMap[zn] = file.NewZone(zn, "")
 			zoneFileMap[zn].Upstream = l.Upstream
-			zoneFileMap[zn].Insert(SOA(zn))
+
+			err = zoneFileMap[zn].Insert(SOA(zn))
+			if err != nil {
+				return fmt.Errorf("updating zones: %w", err)
+			}
 		}
 
 		for _, lr := range lrpz {
-			zoneFileMap[zn].Insert(lr.A())
+			err = zoneFileMap[zn].Insert(lr.A())
+			if err != nil {
+				return fmt.Errorf("updating zones: %w", err)
+			}
 		}
 	}
 
