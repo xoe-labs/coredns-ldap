@@ -10,7 +10,6 @@ import (
 	"github.com/coredns/coredns/plugin/file"
 )
 
-
 // Run updates the zone from ldap.
 func (l *Ldap) Run(ctx context.Context) error {
 	if err := l.updateZones(ctx); err != nil {
@@ -56,7 +55,8 @@ func (l *Ldap) updateZones(ctx context.Context) error {
 	}
 	l.zMu.Lock()
 	for zn, zf := range zoneFileMap {
-        	(*l.Zones.Z[zn]) = *zf
+    		// TODO: assignement copies lock value from file.Zone
+		(*l.Zones.Z[zn]) = *zf
 	}
 	l.zMu.Unlock()
 	return nil
@@ -84,7 +84,7 @@ func (l *Ldap) fetchLdapRecords() (ldapRecords []ldapRecord, err error) {
 		return nil, fmt.Errorf("fetching data from server: %w", err)
 	}
 	ldapRecords = make([]ldapRecord, len(searchResult.Entries))
-	for i, _ := range ldapRecords {
+	for i := 0; i < len(ldapRecords); i++ {
 		ldapRecords[i] = ldapRecord{
 			fqdn: searchResult.Entries[i].GetAttributeValue(l.fqdnAttr),
 			ip:   net.ParseIP(searchResult.Entries[i].GetAttributeValue(l.ip4Attr)),
@@ -92,4 +92,3 @@ func (l *Ldap) fetchLdapRecords() (ldapRecords []ldapRecord, err error) {
 	}
 	return ldapRecords, nil
 }
-

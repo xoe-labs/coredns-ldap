@@ -11,7 +11,7 @@ import (
 )
 
 // ServeDNS implements the plugin.Handler interface.
-func (l Ldap) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+func (l *Ldap) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	// opt := plugin.Options{}
 	state := request.Request{W: w, Req: r}
 
@@ -50,5 +50,5 @@ func (l Ldap) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 }
 
 // Name implements the Handler interface.
-func (l Ldap) Name() string { return "ldap" }
+func (l *Ldap) Name() string { return "ldap" }
 
