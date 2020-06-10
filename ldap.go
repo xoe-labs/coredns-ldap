@@ -3,13 +3,12 @@
 // It serves as a backend connector for autoritative zone data.
 // Ldap is often used for bare metal inventories. This use is the main use case
 // for this plugin. Other use cases might eventually be supported.
-// fqdn and ip4 / ip6 information is mapped from it's repsective ldap schema and
+// fqdn and ip4 / ip6 information is mapped from it's respective ldap schema and
 // served as DNS records over coredns. Mapping is configurable. To reduce load
 // on the backend, a configurable cache is bundled.
 package ldap
 
 import (
-	"errors"
 	"net"
 	"sync"
 	"time"
@@ -68,12 +67,6 @@ func New(zoneNames []string) *Ldap {
 	return l
 }
 
-var (
-	errNoItems        = errors.New("no items found")
-	errNsNotExposed   = errors.New("namespace is not exposed")
-	errInvalidRequest = errors.New("invalid query name")
-)
-
 // InitClient initializes a Ldap client.
 func (l *Ldap) InitClient() (err error) {
 	l.Client, err = ldap.DialURL(l.ldapURL)
@@ -85,9 +78,8 @@ func (l *Ldap) InitClient() (err error) {
 	return nil
 }
 
-
 // SOA returns a syntetic SOA record for a zone.
-func SOA(zone string) (dns.RR) {
+func SOA(zone string) dns.RR {
 	ttl := uint32(300)
 	header := dns.RR_Header{Name: zone, Rrtype: dns.TypeSOA, Ttl: ttl, Class: dns.ClassINET}
 
@@ -108,4 +100,5 @@ func SOA(zone string) (dns.RR) {
 		Minttl:  ttl,
 	}
 }
+
 const hostmaster = "hostmaster"

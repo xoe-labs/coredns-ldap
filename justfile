@@ -9,7 +9,6 @@ fix:
 lint:
 	pre-commit run go-vet-mod || true  # runs go vet
 	pre-commit run go-lint    || true  # runs golint
-	pre-commit run go-critic  || true  # runs gocritic
 
 # lint all issues in - or due - to staged files
 lint-all:

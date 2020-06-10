@@ -12,7 +12,7 @@ import (
 
 // Run updates the zone from ldap.
 func (l *Ldap) Run(ctx context.Context) error {
-	if err := l.updateZones(ctx); err != nil {
+	if err := l.updateZones(); err != nil {
 		return err
 	}
 	go func() {
@@ -22,7 +22,7 @@ func (l *Ldap) Run(ctx context.Context) error {
 				log.Infof("Breaking out of Ldap update loop: %v", ctx.Err())
 				return
 			case <-time.After(l.syncInterval):
-				if err := l.updateZones(ctx); err != nil && ctx.Err() == nil {
+				if err := l.updateZones(); err != nil && ctx.Err() == nil {
 					log.Errorf("Failed to update zones: %v", err)
 				}
 			}
@@ -31,7 +31,7 @@ func (l *Ldap) Run(ctx context.Context) error {
 	return nil
 }
 
-func (l *Ldap) updateZones(ctx context.Context) error {
+func (l *Ldap) updateZones() error {
 	zoneFileMap := make(map[string]*file.Zone, len(l.Zones.Names))
 	for _, zn := range l.Zones.Names {
 		zoneFileMap[zn] = nil
@@ -55,12 +55,11 @@ func (l *Ldap) updateZones(ctx context.Context) error {
 	}
 	l.zMu.Lock()
 	for zn, zf := range zoneFileMap {
-    		// TODO: assignement copies lock value from file.Zone
+		// TODO: assignement copies lock value from file.Zone
 		(*l.Zones.Z[zn]) = *zf
 	}
 	l.zMu.Unlock()
 	return nil
-
 }
 
 func (l *Ldap) mapLdapRecordsToZone(ldapRecords []ldapRecord) (ldapRecordsPerZone map[string][]ldapRecord) {
@@ -75,7 +74,6 @@ func (l *Ldap) mapLdapRecordsToZone(ldapRecords []ldapRecord) (ldapRecordsPerZon
 		}
 	}
 	return lrpz
-
 }
 
 func (l *Ldap) fetchLdapRecords() (ldapRecords []ldapRecord, err error) {

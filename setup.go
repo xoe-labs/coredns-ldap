@@ -26,7 +26,6 @@ func init() { plugin.Register(pluginName, setup) }
 // setup is the function that gets called when the config parser see the token "ldap". Setup is responsible
 // for parsing any extra options the ldap plugin may have. The first token this function sees is "ldap".
 func setup(c *caddy.Controller) error {
-
 	// parse corefile config
 	l, err := ldapParse(c)
 	if err != nil {
@@ -79,7 +78,7 @@ func ldapParse(c *caddy.Controller) (*Ldap, error) {
 	return ldap, nil
 }
 
-// ParseStanza parses a ldap stanza
+// ParseStanza parses a ldap stanza.
 func ParseStanza(c *caddy.Controller) (*Ldap, error) {
 	zoneNames := c.RemainingArgs()
 	if len(zoneNames) != 0 {
@@ -202,12 +201,12 @@ func ParseStanza(c *caddy.Controller) (*Ldap, error) {
 		return nil, c.Err("if not using sasl, both, username and password must be set")
 	}
 	// if both username/password and sasl are set
-	if ldap.username != "" && ldap.sasl == true {
+	if ldap.username != "" && ldap.sasl {
 		fmt.Printf("666 %#v\t%#v", ldap.username, ldap.sasl)
 		return nil, c.Err("cannot use sasl and username based authentication at the same time")
 	}
 	// if neither username/password nor sasl are set
-	if ldap.username == "" && ldap.sasl == false {
+	if ldap.username == "" && !ldap.sasl {
 		return nil, c.Err("authenticate either via username/pwassword or sasl")
 	}
 
