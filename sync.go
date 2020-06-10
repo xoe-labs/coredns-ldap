@@ -15,7 +15,8 @@ func (l *Ldap) Run(ctx context.Context) error {
 	if err := l.updateZones(); err != nil {
 		return err
 	}
-	go func() {
+
+	loop := func() {
 		for {
 			select {
 			case <-ctx.Done():
@@ -27,7 +28,9 @@ func (l *Ldap) Run(ctx context.Context) error {
 				}
 			}
 		}
-	}()
+	}
+	go loop()
+
 	return nil
 }
 
@@ -36,29 +39,35 @@ func (l *Ldap) updateZones() error {
 	for _, zn := range l.Zones.Names {
 		zoneFileMap[zn] = nil
 	}
+
 	ldapRecords, err := l.fetchLdapRecords()
 	if err != nil {
 		return fmt.Errorf("updating zones: %w", err)
 	}
+
 	for zn, lrpz := range l.mapLdapRecordsToZone(ldapRecords) {
 		if lrpz == nil {
 			continue
 		}
+
 		if zoneFileMap[zn] == nil {
 			zoneFileMap[zn] = file.NewZone(zn, "")
 			zoneFileMap[zn].Upstream = l.Upstream
 			zoneFileMap[zn].Insert(SOA(zn))
 		}
+
 		for _, lr := range lrpz {
 			zoneFileMap[zn].Insert(lr.A())
 		}
 	}
+
 	l.zMu.Lock()
 	for zn, zf := range zoneFileMap {
 		// TODO: assignement copies lock value from file.Zone
 		(*l.Zones.Z[zn]) = *zf
 	}
 	l.zMu.Unlock()
+
 	return nil
 }
 
@@ -67,12 +76,14 @@ func (l *Ldap) mapLdapRecordsToZone(ldapRecords []ldapRecord) (ldapRecordsPerZon
 	for _, zn := range l.Zones.Names {
 		lrpz[zn] = nil
 	}
+
 	for _, lr := range ldapRecords {
 		zone := plugin.Zones(l.Zones.Names).Matches(lr.fqdn)
 		if zone != "" {
 			lrpz[zone] = append(lrpz[zone], lr)
 		}
 	}
+
 	return lrpz
 }
 
@@ -81,6 +92,7 @@ func (l *Ldap) fetchLdapRecords() (ldapRecords []ldapRecord, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("fetching data from server: %w", err)
 	}
+
 	ldapRecords = make([]ldapRecord, len(searchResult.Entries))
 	for i := 0; i < len(ldapRecords); i++ {
 		ldapRecords[i] = ldapRecord{
@@ -88,5 +100,6 @@ func (l *Ldap) fetchLdapRecords() (ldapRecords []ldapRecord, err error) {
 			ip:   net.ParseIP(searchResult.Entries[i].GetAttributeValue(l.ip4Attr)),
 		}
 	}
+
 	return ldapRecords, nil
 }

@@ -75,6 +75,7 @@ func ldapParse(c *caddy.Controller) (*Ldap, error) {
 			return ldap, err
 		}
 	}
+
 	return ldap, nil
 }
 
@@ -96,63 +97,73 @@ func ParseStanza(c *caddy.Controller) (*Ldap, error) {
 	ldap.Upstream = upstream.New()
 
 	for c.NextBlock() {
-		fmt.Printf("111 %#v\n", c.Val())
 		switch c.Val() {
 		// RFC 4516 URL
 		case "ldap_url":
 			if !c.NextArg() {
 				return nil, c.ArgErr()
 			}
+
 			ldap.ldapURL = c.Val()
 		case "paging_limit":
 			if !c.NextArg() {
 				return nil, c.ArgErr()
 			}
+
 			pagingLimit, err := strconv.ParseUint(c.Val(), 10, 0)
 			if err != nil {
 				return nil, c.Errf("paging_limit: %w", err)
 			}
+
 			ldap.pagingLimit = uint32(pagingLimit)
 		case "base_dn":
 			if !c.NextArg() {
 				return nil, c.ArgErr()
 			}
+
 			ldap.searchRequest.BaseDN = c.Val() // ou=ae-dir
 		case "filter":
 			if !c.NextArg() {
 				return nil, c.ArgErr()
 			}
+
 			ldap.searchRequest.Filter = c.Val() // (objectClass=aeNwDevice)
 		case "attributes":
 			c.Next()
+
 			for c.NextBlock() {
 				switch c.Val() {
 				case "fqdn":
 					if !c.NextArg() {
 						return nil, c.ArgErr()
 					}
+
 					ldap.searchRequest.Attributes = append(ldap.searchRequest.Attributes, c.Val())
 					ldap.fqdnAttr = c.Val() // aeFqdn
 				case "ip4":
 					if !c.NextArg() {
 						return nil, c.ArgErr()
 					}
+
 					ldap.searchRequest.Attributes = append(ldap.searchRequest.Attributes, c.Val())
 					ldap.ip4Attr = c.Val() // ipHostNumber
 				default:
 					return nil, c.Errf("unknown attributes property '%s'", c.Val())
 				}
 			}
+
 			continue
 		case "username":
 			if !c.NextArg() {
 				return nil, c.ArgErr()
 			}
+
 			ldap.username = c.Val()
 		case "password":
 			if !c.NextArg() {
 				return nil, c.ArgErr()
 			}
+
 			ldap.password = c.Val()
 		case "sasl":
 			ldap.sasl = true
@@ -160,19 +171,23 @@ func ParseStanza(c *caddy.Controller) (*Ldap, error) {
 			if !c.NextArg() {
 				return nil, c.ArgErr()
 			}
+
 			ttl, err := time.ParseDuration(c.Val())
 			if err != nil {
 				return nil, c.Errf("ttl: %w", err)
 			}
+
 			ldap.ttl = ttl
 		case "sync_interval":
 			if !c.NextArg() {
 				return nil, c.ArgErr()
 			}
+
 			syncInterval, err := time.ParseDuration(c.Val())
 			if err != nil {
 				return nil, c.Errf("sync_interval: %w", err)
 			}
+
 			ldap.syncInterval = syncInterval
 		case "fallthrough":
 			ldap.Fall.SetZonesFromArgs(c.RemainingArgs())
@@ -180,31 +195,39 @@ func ParseStanza(c *caddy.Controller) (*Ldap, error) {
 			return nil, c.Errf("unknown property '%s'", c.Val())
 		}
 	}
+
 	// validate non-default ldap values ...
 	if ldap.ldapURL == "" {
 		return nil, c.Err("ldap_url cannot be empty")
 	}
+
 	if ldap.searchRequest.BaseDN == "" {
 		return nil, c.Err("base_dn cannot be empty")
 	}
+
 	if ldap.searchRequest.Filter == "" {
 		return nil, c.Err("filter cannot be empty")
 	}
+
 	if ldap.fqdnAttr == "" {
 		return nil, c.Err("fqdn attribute cannot be empty")
 	}
+
 	if ldap.ip4Attr == "" {
 		return nil, c.Err("ip4 attribute cannot be empty")
 	}
+
 	// if only one of password and username set
 	if (ldap.username == "") != (ldap.password == "") {
 		return nil, c.Err("if not using sasl, both, username and password must be set")
 	}
+
 	// if both username/password and sasl are set
 	if ldap.username != "" && ldap.sasl {
 		fmt.Printf("666 %#v\t%#v", ldap.username, ldap.sasl)
 		return nil, c.Err("cannot use sasl and username based authentication at the same time")
 	}
+
 	// if neither username/password nor sasl are set
 	if ldap.username == "" && !ldap.sasl {
 		return nil, c.Err("authenticate either via username/pwassword or sasl")

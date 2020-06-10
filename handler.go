@@ -19,14 +19,18 @@ func (l *Ldap) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	if zone == "" {
 		return plugin.NextOrFailure(l.Name(), l.Next, ctx, w, r)
 	}
+
 	Zone, ok := l.Zones.Z[zone]
 	if !ok || Zone == nil {
 		return dns.RcodeServerFailure, nil
 	}
+
 	var result file.Result
+
 	m := new(dns.Msg)
 	m.SetReply(r)
 	m.Authoritative = true
+
 	l.zMu.RLock()
 	m.Answer, m.Ns, m.Extra, result = Zone.Lookup(ctx, state, state.Name())
 	l.zMu.RUnlock()
@@ -46,6 +50,7 @@ func (l *Ldap) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 		return dns.RcodeServerFailure, nil
 	}
 	w.WriteMsg(m)
+
 	return dns.RcodeSuccess, nil
 }
 

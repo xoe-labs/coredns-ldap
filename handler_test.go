@@ -1,4 +1,4 @@
-package ldap
+package ldap_test
 
 import (
 	"context"
@@ -10,6 +10,8 @@ import (
 	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
+
+	. "github.com/xoe-labs/ldap/v0"
 )
 
 var ldapTestCases = []test.Case{
@@ -28,12 +30,14 @@ func newTestLdap() *Ldap {
 	ldap.Zones.Z = newTestLdapZones()
 	ldap.Fall = fall.Zero
 	ldap.Next = test.ErrorHandler()
+
 	return ldap
 }
 
 func newTestLdapZones() map[string]*file.Zone {
 	Zone := file.NewZone("example.org.", "")
 	Zone.Insert(SOA("example.org."))
+
 	for _, rr := range []string{
 		"example.org. " + defaultA,
 		"a.example.org. " + defaultA,
@@ -41,25 +45,31 @@ func newTestLdapZones() map[string]*file.Zone {
 		r, _ := dns.NewRR(rr)
 		Zone.Insert(r)
 	}
+
 	zones := make(map[string]*file.Zone)
 	zones["example.org."] = Zone
+
 	return zones
 }
 
 func TestServeDNS(t *testing.T) {
 	ldap := newTestLdap()
+
 	for i, tc := range ldapTestCases {
 		req := tc.Msg()
 		rec := dnstest.NewRecorder(&test.ResponseWriter{})
+
 		_, err := ldap.ServeDNS(context.Background(), rec, req)
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
 			continue
 		}
+
 		resp := rec.Msg
 		if resp == nil {
 			t.Fatalf("Test %d, got nil message and no error for %q", i, req.Question[0].Name)
 		}
+
 		if err := test.SortAndCheck(resp, tc); err != nil {
 			t.Error(err)
 		}

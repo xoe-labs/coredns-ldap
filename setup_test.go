@@ -1,9 +1,11 @@
-package ldap
+package ldap_test
 
 import (
 	"testing"
 
 	"github.com/caddyserver/caddy"
+
+	. "github.com/xoe-labs/ldap/v0"
 )
 
 // TestSetup tests the various things that should be parsed by setup.

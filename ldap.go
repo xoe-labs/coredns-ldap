@@ -64,6 +64,7 @@ func New(zoneNames []string) *Ldap {
 	l.searchRequest.SizeLimit = 500                       // TODO: Reason
 	l.searchRequest.TimeLimit = 500                       // TODO: Reason
 	l.searchRequest.TypesOnly = false                     // TODO: Reason
+
 	return l
 }
 
@@ -75,6 +76,7 @@ func (l *Ldap) InitClient() (err error) {
 		return err
 	}
 	defer l.Client.Close()
+
 	return nil
 }
 
@@ -85,6 +87,7 @@ func SOA(zone string) dns.RR {
 
 	Mbox := hostmaster + "."
 	Ns := "ns.dns."
+
 	if zone[0] != '.' {
 		Mbox += zone
 		Ns += zone
