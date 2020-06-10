@@ -34,7 +34,10 @@ func newTestLdap() *Ldap {
 func newTestLdapZones() map[string]*file.Zone {
 	Zone := file.NewZone("example.org.", "")
 	Zone.Insert(SOA("example.org."))
-	for _, rr := range []string{"example.org. " + defaultA} {
+	for _, rr := range []string{
+    		"example.org. " + defaultA,
+    		"a.example.org. " + defaultA,
+    	} {
 		r, _ := dns.NewRR(rr)
 		Zone.Insert(r)
 	}
