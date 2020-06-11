@@ -1,3 +1,4 @@
+default_stages: [push, manual]
 repos:
   # ==========================================================================
   # Golang Pre-Commit Hooks | https://github.com/tekwizely/pre-commit-golang
@@ -60,8 +61,11 @@ repos:
   # Aliases:
   #   Consider adding aliases to longer-named hooks for easier CLI usage.
   # ==========================================================================
-  - repo: https://github.com/tekwizely/pre-commit-golang
-    rev: master
+
+  # - repo: https://github.com/tekwizely/pre-commit-golang
+  #   rev: v0.8.0
+  - repo: https://github.com/blaggacao/pre-commit-golang
+    rev: fix-vendor
     hooks:
       #
       # Go Build
@@ -74,6 +78,10 @@ repos:
       # Go Test
       #
       - id: go-test-mod
+      - id: go-test-repo-mod
+        alias: go-test-repo-mod-all
+        always_run: true
+        stages: [manual]
       # -   id: go-test-pkg
       # -   id: go-test-repo-mod
       # -   id: go-test-repo-pkg
@@ -82,6 +90,7 @@ repos:
       #
       # -   id: go-vet
       - id: go-vet-mod
+        alias: go-vet-mod-changed
       # -   id: go-vet-pkg
       # -   id: go-vet-repo-mod
       # -   id: go-vet-repo-pkg
@@ -91,10 +100,15 @@ repos:
       # -   id: go-fmt
       # -   id: go-imports # Replaces go-fmt
       - id: go-returns # Replaces go-imports & go-fmt
+      - id: go-returns
+        alias: go-returns-write
+        stages: [manual]
+        args: [-w]
       #
       # Style Checkers
       #
       - id: go-lint
+        alias: go-lint-changed
       # - id: go-critic
       #
       # GolangCI-Lint
@@ -105,11 +119,16 @@ repos:
       #
       # -   id: golangci-lint
       - id: golangci-lint-mod
+        alias: golangci-lint-mod-changed
+      - id: golangci-lint-repo-mod
+        alias: golangci-lint-repo-mod-all
+        always_run: true
+        stages: [manual]
       # - id: golangci-lint-pkg
       # - id: golangci-lint-repo-mod
       # - id: golangci-lint-repo-pkg
 
   - repo: https://github.com/prettier/prettier
-    rev: "master"
+    rev: "2.0.5"
     hooks:
       - id: prettier

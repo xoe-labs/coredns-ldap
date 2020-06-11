@@ -1,40 +1,42 @@
 # use with https://github.com/casey/just
 
+# use pre-commit manual stage
+pre-commit-manual := "pre-commit run --hook-stage manual"
+
 # fix auto-fixable lint issues in staged files
 fix:
-	FORMAT= pre-commit run go-returns  # fixes all Go lint issues
-	pre-commit run prettier            # fixes all Markdown (& other) lint issues
+	{{ pre-commit-manual }} go-returns-write  # fixes all Go lint issues
+	{{ pre-commit-manual }} prettier          # fixes all Markdown (& other) lint issues
 
-# lint most common issues in - or due - to staged files
+# lint issues in - or due - to staged files
 lint:
-	pre-commit run go-vet-mod || true  # runs go vet
-	pre-commit run go-lint    || true  # runs golint
+	{{ pre-commit-manual }} go-vet-mod-changed         # first run go vet
+	{{ pre-commit-manual }} go-lint-changed            # then run golint
+	{{ pre-commit-manual }} golangci-lint-mod-changed  # last run golangci-lint
 
-# lint all issues in - or due - to staged files
+# lint all issues
 lint-all:
-	pre-commit run golangci-lint-mod || true  # runs golangci-lint
+	{{ pre-commit-manual }} golangci-lint-repo-mod-all || true  # runs golangci-lint
 
 # run tests in - or due - to staged files
 test:
-	pre-commit run go-test-mod || true  # runs go test
+	{{ pre-commit-manual }} go-test-repo-mod-all || true  # runs go test
 
-# commit skipping pre-commit hooks
-commit m:
-	git commit --no-verify -m "{{m}}"
+# push skipping pre-push hooks
+push:
+	git push --no-verify
 
-# amend skipping pre-commit hooks
-amend:
-	git commit --amend --no-verify
-
-# install/update code automation (prettier, pre-commit, goreturns, lintpack, gocritic, golangci-lint)
+# install/update code automation
 install:
-	npm i -g prettier
 	curl https://pre-commit.com/install-local.py | python3 -
+	pre-commit install-hooks
+	# are NOT (yet) automatically installed
+	# through https://github.com/tekwizely/pre-commit-golang
 	go get github.com/sqs/goreturns
 	go get github.com/go-lintpack/lintpack/...
 	go get github.com/go-critic/go-critic/...
 	curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $(go env GOPATH)/bin v1.27.0
 
-# setup/update pre-commit hooks (optional)
-setup:
-	pre-commit install --install-hooks # uninstall: `pre-commit uninstall`
+# setup hooks for stage (optional)
+setup stage="pre-push":
+	pre-commit install --hook-type {{ stage }}  # uninstall: `pre-commit uninstall`
