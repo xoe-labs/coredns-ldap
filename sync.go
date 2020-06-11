@@ -3,6 +3,7 @@ package ldap
 import (
 	"context"
 	"fmt"
+	"strings"
 	"net"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 
 // Run updates the zone from ldap.
 func (l *Ldap) Run(ctx context.Context) error {
-	if err := l.updateZones(); err != nil {
+	if err := l.UpdateZones(); err != nil {
 		return err
 	}
 
@@ -23,7 +24,7 @@ func (l *Ldap) Run(ctx context.Context) error {
 				log.Infof("Breaking out of Ldap update loop: %v", ctx.Err())
 				return
 			case <-time.After(l.syncInterval):
-				if err := l.updateZones(); err != nil && ctx.Err() == nil {
+				if err := l.UpdateZones(); err != nil && ctx.Err() == nil {
 					log.Errorf("Failed to update zones: %v", err)
 				}
 			}
@@ -34,10 +35,17 @@ func (l *Ldap) Run(ctx context.Context) error {
 	return nil
 }
 
-func (l *Ldap) updateZones() error {
+func (l *Ldap) UpdateZones() error {
 	zoneFileMap := make(map[string]*file.Zone, len(l.Zones.Names))
 	for _, zn := range l.Zones.Names {
 		zoneFileMap[zn] = nil
+		zoneFileMap[zn] = file.NewZone(zn, "")
+		zoneFileMap[zn].Upstream = l.Upstream
+
+		err := zoneFileMap[zn].Insert(SOA(zn))
+		if err != nil {
+			return fmt.Errorf("updating zones: %w", err)
+		}
 	}
 
 	ldapRecords, err := l.fetchLdapRecords()
@@ -46,18 +54,8 @@ func (l *Ldap) updateZones() error {
 	}
 
 	for zn, lrpz := range l.mapLdapRecordsToZone(ldapRecords) {
-		if lrpz == nil {
+		if len(lrpz) == 0 {
 			continue
-		}
-
-		if zoneFileMap[zn] == nil {
-			zoneFileMap[zn] = file.NewZone(zn, "")
-			zoneFileMap[zn].Upstream = l.Upstream
-
-			err = zoneFileMap[zn].Insert(SOA(zn))
-			if err != nil {
-				return fmt.Errorf("updating zones: %w", err)
-			}
 		}
 
 		for _, lr := range lrpz {
@@ -70,8 +68,7 @@ func (l *Ldap) updateZones() error {
 
 	l.zMu.Lock()
 	for zn, zf := range zoneFileMap {
-		// TODO: assignement copies lock value from file.Zone
-		(*l.Zones.Z[zn]) = *zf
+		l.Zones.Z[zn] = zf
 	}
 	l.zMu.Unlock()
 
@@ -95,16 +92,20 @@ func (l *Ldap) mapLdapRecordsToZone(ldapRecords []ldapRecord) (ldapRecordsPerZon
 }
 
 func (l *Ldap) fetchLdapRecords() (ldapRecords []ldapRecord, err error) {
-	searchResult, err := l.Client.SearchWithPaging(l.searchRequest, l.pagingLimit)
+	searchResult, err := l.Client.SearchWithPaging(l.SearchRequest, l.pagingLimit)
 	if err != nil {
 		return nil, fmt.Errorf("fetching data from server: %w", err)
 	}
 
 	ldapRecords = make([]ldapRecord, len(searchResult.Entries))
 	for i := 0; i < len(ldapRecords); i++ {
+		fqdn := searchResult.Entries[i].GetAttributeValue(l.FqdnAttr)
+		if !strings.HasSuffix(fqdn, ".") {
+			fqdn = fqdn + "."
+		}
 		ldapRecords[i] = ldapRecord{
-			fqdn: searchResult.Entries[i].GetAttributeValue(l.fqdnAttr),
-			ip:   net.ParseIP(searchResult.Entries[i].GetAttributeValue(l.ip4Attr)),
+			fqdn: fqdn,
+			ip:   net.ParseIP(searchResult.Entries[i].GetAttributeValue(l.Ip4Attr)),
 		}
 	}
 

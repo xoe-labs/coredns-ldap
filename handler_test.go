@@ -15,7 +15,7 @@ import (
 )
 
 // nolint: gochecknoglobals
-var ldapTestCases = []test.Case{
+var ldapHandlerTestCases = []test.Case{
 	{
 		// Simple case
 		Qname: "a.example.org.", Qtype: dns.TypeA,
@@ -26,16 +26,16 @@ var ldapTestCases = []test.Case{
 }
 
 // Create a new Ldap Plugin. Use the test.ErrorHandler as the next plugin.
-func newTestLdap() *Ldap {
+func newTestLdapHandler() *Ldap {
 	ldap := New([]string{"example.org.", "www.example.org.", "example.org.", "sample.example.org."})
-	ldap.Zones.Z = newTestLdapZones()
+	ldap.Zones.Z = newTestLdapHandlerZones()
 	ldap.Fall = fall.Zero
 	ldap.Next = test.ErrorHandler()
 
 	return ldap
 }
 
-func newTestLdapZones() map[string]*file.Zone {
+func newTestLdapHandlerZones() map[string]*file.Zone {
 	Zone := file.NewZone("example.org.", "")
 	if err := Zone.Insert(SOA("example.org.")); err != nil {
 		panic("omg")
@@ -58,9 +58,9 @@ func newTestLdapZones() map[string]*file.Zone {
 }
 
 func TestServeDNS(t *testing.T) {
-	ldap := newTestLdap()
+	ldap := newTestLdapHandler()
 
-	for i, tc := range ldapTestCases {
+	for i, tc := range ldapHandlerTestCases {
 		req := tc.Msg()
 		rec := dnstest.NewRecorder(&test.ResponseWriter{})
 

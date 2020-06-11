@@ -125,13 +125,13 @@ func ParseStanza(c *caddy.Controller) (*Ldap, error) {
 				return nil, c.ArgErr()
 			}
 
-			ldap.searchRequest.BaseDN = c.Val() // ou=ae-dir
+			ldap.SearchRequest.BaseDN = c.Val() // ou=ae-dir
 		case "filter":
 			if !c.NextArg() {
 				return nil, c.ArgErr()
 			}
 
-			ldap.searchRequest.Filter = c.Val() // (objectClass=aeNwDevice)
+			ldap.SearchRequest.Filter = c.Val() // (objectClass=aeNwDevice)
 		case "attributes":
 			c.Next()
 
@@ -142,15 +142,15 @@ func ParseStanza(c *caddy.Controller) (*Ldap, error) {
 						return nil, c.ArgErr()
 					}
 
-					ldap.searchRequest.Attributes = append(ldap.searchRequest.Attributes, c.Val())
-					ldap.fqdnAttr = c.Val() // aeFqdn
+					ldap.SearchRequest.Attributes = append(ldap.SearchRequest.Attributes, c.Val())
+					ldap.FqdnAttr = c.Val() // aeFqdn
 				case "ip4":
 					if !c.NextArg() {
 						return nil, c.ArgErr()
 					}
 
-					ldap.searchRequest.Attributes = append(ldap.searchRequest.Attributes, c.Val())
-					ldap.ip4Attr = c.Val() // ipHostNumber
+					ldap.SearchRequest.Attributes = append(ldap.SearchRequest.Attributes, c.Val())
+					ldap.Ip4Attr = c.Val() // ipHostNumber
 				default:
 					return nil, c.Errf("unknown attributes property '%s'", c.Val())
 				}
@@ -205,19 +205,19 @@ func ParseStanza(c *caddy.Controller) (*Ldap, error) {
 		return nil, c.Err("ldap_url cannot be empty")
 	}
 
-	if ldap.searchRequest.BaseDN == "" {
+	if ldap.SearchRequest.BaseDN == "" {
 		return nil, c.Err("base_dn cannot be empty")
 	}
 
-	if ldap.searchRequest.Filter == "" {
+	if ldap.SearchRequest.Filter == "" {
 		return nil, c.Err("filter cannot be empty")
 	}
 
-	if ldap.fqdnAttr == "" {
+	if ldap.FqdnAttr == "" {
 		return nil, c.Err("fqdn attribute cannot be empty")
 	}
 
-	if ldap.ip4Attr == "" {
+	if ldap.Ip4Attr == "" {
 		return nil, c.Err("ip4 attribute cannot be empty")
 	}
 

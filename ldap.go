@@ -39,17 +39,19 @@ type Ldap struct {
 	Client   ldap.Client
 	Zones    file.Zones
 
-	searchRequest *ldap.SearchRequest
-	ldapURL       string
-	pagingLimit   uint32
-	syncInterval  time.Duration
-	username      string
-	password      string
-	sasl          bool
-	fqdnAttr      string
-	ip4Attr       string
-	zMu           sync.RWMutex
-	ttl           time.Duration
+	// Exported for mocking in test
+	SearchRequest *ldap.SearchRequest
+	FqdnAttr      string
+	Ip4Attr       string
+
+	ldapURL      string
+	pagingLimit  uint32
+	syncInterval time.Duration
+	username     string
+	password     string
+	sasl         bool
+	zMu          sync.RWMutex
+	ttl          time.Duration
 }
 
 // New returns an initialized Ldap with defaults.
@@ -57,13 +59,19 @@ func New(zoneNames []string) *Ldap {
 	l := new(Ldap)
 	l.Zones.Names = zoneNames
 	l.pagingLimit = 0
+	l.syncInterval = 60 * time.Second
 	// SearchRequest defaults
-	l.searchRequest = new(ldap.SearchRequest)
-	l.searchRequest.DerefAliases = ldap.NeverDerefAliases // TODO: Reason
-	l.searchRequest.Scope = ldap.ScopeWholeSubtree        // search whole subtree
-	l.searchRequest.SizeLimit = 500                       // TODO: Reason
-	l.searchRequest.TimeLimit = 500                       // TODO: Reason
-	l.searchRequest.TypesOnly = false                     // TODO: Reason
+	l.SearchRequest = new(ldap.SearchRequest)
+	l.SearchRequest.DerefAliases = ldap.NeverDerefAliases // TODO: Reason
+	l.SearchRequest.Scope = ldap.ScopeWholeSubtree        // search whole subtree
+	l.SearchRequest.SizeLimit = 500                       // TODO: Reason
+	l.SearchRequest.TimeLimit = 500                       // TODO: Reason
+	l.SearchRequest.TypesOnly = false                     // TODO: Reason
+	l.Zones.Z = make(map[string]*file.Zone, len(zoneNames))
+
+	for _, zn := range zoneNames {
+		l.Zones.Z[zn] = nil
+	}
 
 	return l
 }
