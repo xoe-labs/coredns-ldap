@@ -1,9 +1,9 @@
 # use with https://github.com/casey/just
 
-# fixe auto-fixable lint issues in staged files
+# fix auto-fixable lint issues in staged files
 fix:
-	pre-commit run go-returns  # fixes all Go lint issues
-	pre-commit run prettier    # fixes all Markdown (& other) lint issues
+	FORMAT= pre-commit run go-returns  # fixes all Go lint issues
+	pre-commit run prettier            # fixes all Markdown (& other) lint issues
 
 # lint most common issues in - or due - to staged files
 lint:
