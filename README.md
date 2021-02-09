@@ -24,7 +24,7 @@ recompile it as
 [detailed on coredns.io](https://coredns.io/2017/07/25/compile-time-enabling-or-disabling-plugins/#build-with-compile-time-configuration-file).
 
 ```
-ldap:github.com/xoe-labs/ldap
+ldap:github.com/xoe-labs/coredns-ldap
 ```
 
 After this you can compile coredns by:
