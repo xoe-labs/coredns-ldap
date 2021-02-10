@@ -19,7 +19,7 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 
 	"github.com/miekg/dns"
-	"gopkg.in/ldap.v3"
+	"github.com/go-ldap/ldap/v3"
 )
 
 type ldapRecord struct {
