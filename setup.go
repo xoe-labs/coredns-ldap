@@ -234,7 +234,7 @@ func ParseStanza(c *caddy.Controller) (*Ldap, error) {
 
 	// if neither username/password nor sasl are set
 	if ldap.username == "" && !ldap.sasl {
-		return nil, c.Err("authenticate either via username/pwassword or sasl")
+		return nil, c.Err("authenticate either via username/password or sasl")
 	}
 
 	return ldap, nil
