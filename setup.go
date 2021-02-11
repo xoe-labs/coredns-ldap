@@ -6,13 +6,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/coredns/caddy"
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
-	"github.com/coredns/coredns/plugin/metrics"
+	"github.com/prometheus/client_golang/prometheus"
 	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/coredns/coredns/plugin/pkg/upstream"
-
-	"github.com/caddyserver/caddy"
 )
 
 const pluginName = "ldap"
@@ -43,7 +42,7 @@ func setup(c *caddy.Controller) error {
 	c.OnStartup(func() error {
 		// add plugin-global metric once
 		once.Do(func() {
-			metrics.MustRegister(c, requestCount)
+			prometheus.MustRegister(requestCount)
 		})
 		return nil
 	})
