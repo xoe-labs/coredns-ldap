@@ -59,6 +59,7 @@ func (l *Ldap) UpdateZones() error {
 		}
 
 		for _, lr := range lrpz {
+			err = zoneFileMap[zn].Insert(lr.AAAA())
 			err = zoneFileMap[zn].Insert(lr.A())
 			if err != nil {
 				return fmt.Errorf("updating zones: %w", err)
@@ -105,7 +106,8 @@ func (l *Ldap) fetchLdapRecords() (ldapRecords []ldapRecord, err error) {
 		}
 		ldapRecords[i] = ldapRecord{
 			fqdn: fqdn,
-			ip:   net.ParseIP(searchResult.Entries[i].GetAttributeValue(l.Ip4Attr)),
+			ip4:   net.ParseIP(searchResult.Entries[i].GetAttributeValue(l.Ip4Attr)),
+			ip6:   net.ParseIP(searchResult.Entries[i].GetAttributeValue(l.Ip6Attr)),
 		}
 	}
 
