@@ -150,6 +150,13 @@ func ParseStanza(c *caddy.Controller) (*Ldap, error) {
 
 					ldap.SearchRequest.Attributes = append(ldap.SearchRequest.Attributes, c.Val())
 					ldap.Ip4Attr = c.Val() // ipHostNumber
+				case "ip6":
+					if !c.NextArg() {
+						return nil, c.ArgErr()
+					}
+
+					ldap.SearchRequest.Attributes = append(ldap.SearchRequest.Attributes, c.Val())
+					ldap.Ip6Attr = c.Val() // ipHostNumber
 				default:
 					return nil, c.Errf("unknown attributes property '%s'", c.Val())
 				}

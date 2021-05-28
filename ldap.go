@@ -24,12 +24,18 @@ import (
 
 type ldapRecord struct {
 	fqdn string
-	ip   net.IP
+	ip4   net.IP
+	ip6   net.IP
 }
 
 func (r *ldapRecord) A() (a *dns.A) {
-	return &dns.A{Hdr: dns.RR_Header{Name: r.fqdn, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 0}, A: r.ip}
+	return &dns.A{Hdr: dns.RR_Header{Name: r.fqdn, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 0}, A: r.ip4}
 }
+
+func (r *ldapRecord) AAAA() (a *dns.AAAA) {
+	return &dns.AAAA{Hdr: dns.RR_Header{Name: r.fqdn, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: 86400}, AAAA: r.ip6}
+}
+
 
 // Ldap is an ldap plugin to serve zone entries from a ldap backend.
 type Ldap struct {
@@ -43,6 +49,7 @@ type Ldap struct {
 	SearchRequest *ldap.SearchRequest
 	FqdnAttr      string
 	Ip4Attr       string
+	Ip6Attr       string
 
 	ldapURL      string
 	pagingLimit  uint32
