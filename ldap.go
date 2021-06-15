@@ -18,14 +18,14 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/fall"
 	"github.com/coredns/coredns/plugin/pkg/upstream"
 
-	"github.com/miekg/dns"
 	"github.com/go-ldap/ldap/v3"
+	"github.com/miekg/dns"
 )
 
 type ldapRecord struct {
 	fqdn string
-	ip4   net.IP
-	ip6   net.IP
+	ip4  net.IP
+	ip6  net.IP
 }
 
 func (r *ldapRecord) A() (a *dns.A) {
@@ -35,7 +35,6 @@ func (r *ldapRecord) A() (a *dns.A) {
 func (r *ldapRecord) AAAA() (a *dns.AAAA) {
 	return &dns.AAAA{Hdr: dns.RR_Header{Name: r.fqdn, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: 86400}, AAAA: r.ip6}
 }
-
 
 // Ldap is an ldap plugin to serve zone entries from a ldap backend.
 type Ldap struct {
@@ -59,6 +58,7 @@ type Ldap struct {
 	sasl         bool
 	zMu          sync.RWMutex
 	ttl          time.Duration
+	Ptr          map[string]string
 }
 
 // New returns an initialized Ldap with defaults.
