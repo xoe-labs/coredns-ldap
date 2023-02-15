@@ -266,7 +266,7 @@ func CNAMEOrder(res *dns.Msg) error {
 
 // SortAndCheck sorts resp and the checks the header and three sections against the testcase in tc.
 func SortAndCheck(resp *dns.Msg, tc Case) error {
-    	sort.Sort(RRSet(resp.Answer))
+	sort.Sort(RRSet(resp.Answer))
 	sort.Sort(RRSet(resp.Ns))
 	sort.Sort(RRSet(resp.Extra))
 
